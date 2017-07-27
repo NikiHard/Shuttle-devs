@@ -1,0 +1,369 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven { url 'https://maven.fabric.io/public' }
+        maven { url "https://jitpack.io" }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+        maven { url "https://maven.google.com" }
+        mavenCentral()
+    }
+    dependencies {
+        classpath gradlePlugins.android
+        classpath gradlePlugins.dexcount
+        classpath gradlePlugins.fabric
+        classpath gradlePlugins.retroLambda
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'com.getkeepsafe.dexcount'
+apply plugin: 'io.fabric'
+apply plugin: 'com.github.triplet.play'
+apply plugin: 'me.tatarka.retrolambda'
+
+repositories {
+    maven { url 'https://maven.fabric.io/public' }
+    maven { url "https://jitpack.io" }
+    maven {
+        url 'http://oss.sonatype.org/content/repositories/snapshots'
+    }
+}
+
+//For some reason this needs to be placed below the dependencies in order for gms services to work..
+apply plugin: 'com.google.gms.google-services'
+
+@Nullable
+def getProperties(String fileName) {
+    final def Properties properties = new Properties()
+    def file = file(fileName)
+    if (file.exists()) {
+        file.withInputStream { stream -> properties.load(stream) }
+    }
+    return properties
+}
+
+def getProperty(@Nullable Properties properties, String name) {
+    return properties.getProperty(name) ?: "$name missing"
+}
+
+android {
+
+    dexOptions {
+        jumboMode = true
+    }
+
+    compileSdkVersion versions.compileSdk
+    buildToolsVersion versions.buildTools
+
+    defaultConfig {
+        minSdkVersion versions.minSdk
+        targetSdkVersion versions.targetSdk
+
+        versionName versions.name
+        versionCode gitCommitCount() + 3200
+        // Add 3200 to account for moving to github and resetting commit count.
+
+        resConfigs "en", "zh-rCN", "fr", "de", "ko", "it", "nl", "tr", "pl", "hu", "uk", "bg-rBG", "en-rGB", "vi", "pt-rBR", "es", "en-rNZ", "zh-rTW", "es-rES", "hr", "en-rAU", "eu-rES"
+
+        renderscriptTargetApi 23
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        buildConfigField "boolean", "MULTIDEX_ENABLED", "false"
+
+        // This API key is provided for convenience. Please go to https://www.last.fm/api/account/create and create your own.
+        buildConfigField("String", "LASTFM_API_KEY", "\"${getProperty(getProperties('../public.properties'), 'LASTFM_API_KEY')}\"")
+
+        manifestPlaceholders = [CRASHLYTICS_API_KEY: ""]
+    }
+
+    signingConfigs {
+        release {
+            Properties properties = getProperties('../keystore.properties')
+            storeFile file(getProperty(properties, 'store'))
+            keyAlias getProperty(properties, 'alias')
+            storePassword getProperty(properties, 'storePass')
+            keyPassword getProperty(properties, 'pass')
+        }
+    }
+
+    buildTypes {
+
+        debug {
+            applicationIdSuffix ".debug"
+            ext.enableCrashlytics = false
+        }
+
+        release {
+
+            minifyEnabled true
+            shrinkResources true
+
+            // For further optimisation, use 'proguard-android-optimize.txt' instead of 'proguard-android.txt'.
+            // Last time I checked, it reduced by another ~5000 methods.
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), file('proguard-rules.pro')
+            signingConfig signingConfigs.release
+
+            buildConfigField("String", "LASTFM_API_KEY", "\"${getProperty(getProperties('../private.properties'), 'LASTFM_API_KEY')}\"")
+            manifestPlaceholders = [CRASHLYTICS_API_KEY: "${getProperty(getProperties('../private.properties'), 'CRASHLYTICS_API_KEY')}"]
+        }
+
+        /* Todo: Figure out how to reinstate with new Gradle version
+        applicationVariants.all { variant ->
+
+            if (variant.buildType.name.contains('release')) {
+                variant.outputs.all { output ->
+                    outputFileName = "${variant.name}-v${variant.versionName}.apk"
+                }
+
+                //Reveal in explorer/finder
+                variant.assemble.doLast {
+                    def path = null
+                    variant.outputs.each { output ->
+                        path = output.outputFile
+
+                        //Delete the unaligned apk file
+                        File unaligned = output.packageApplication.outputFile
+                        File aligned = output.outputFile
+                        if (!unaligned.getName().equalsIgnoreCase(aligned.getName())) {
+                            unaligned.delete()
+                        }
+                    }
+
+                    exec {
+                        if (System.properties['os.name'].toLowerCase().contains('mac os x')) {
+                            ['open', '-R', path].execute()
+                        } else if (System.properties['os.name'].toLowerCase().contains('windows')) {
+                            ['explorer', '/select,', path].execute()
+                        }
+                    }
+                }
+            }
+        }
+        */
+    }
+
+    //Ignore useless variants, such as devRelease.
+    variantFilter { variant ->
+
+        def names = variant.flavors*.name
+        def buildTypes = variant.buildType*.name
+
+        def debugFilters = ["paid", "free", 'amazonPaid', "amazonFree"]
+        def relFilters = ["dev", "devPre21"]
+
+        def filter = { name -> names.contains(name) }
+        def debugIgnore = buildTypes.contains("debug") && debugFilters.stream().anyMatch(filter)
+        def releaseIgnore = buildTypes.contains("release") && relFilters.stream().anyMatch(filter)
+
+        setIgnore(debugIgnore || releaseIgnore)
+    }
+
+    // Used to enable Java8 features
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    flavorDimensions "all"
+
+    productFlavors {
+
+        dev {
+            dimension "all"
+
+            applicationId "com.simplecity.amp_pro"
+
+            //Enable multiDex for debug builds, since they don't use proguard
+            multiDexEnabled true
+        }
+
+        paid {
+            dimension "all"
+            applicationId "com.simplecity.amp_pro"
+        }
+
+        free {
+            dimension "all"
+            applicationId "another.music.player"
+        }
+
+        amazonPaid {
+            dimension "all"
+            applicationId "com.simplecity.amp_pro"
+        }
+
+        amazonFree {
+            dimension "all"
+            applicationId "another.music.player"
+        }
+    }
+
+    sourceSets {
+        main.aidl.srcDirs = ['src/main/java']
+
+        dev.res.srcDirs = ['src/paid/res']
+        dev.java.srcDirs = ['src/paid/java']
+
+        devPre21.res.srcDirs = ['src/paid/res']
+        devPre21.java.srcDirs = ['src/paid/java']
+
+        paid.res.srcDirs = ['src/paid/res']
+        paid.java.srcDirs = ['src/paid/java']
+
+        free.manifest.srcFile 'src/free/AndroidManifest.xml'
+        free.res.srcDirs = ['src/free/res']
+        free.java.srcDirs = ['src/free/java']
+
+        amazonPaid.res.srcDirs = ['src/paid/res']
+        amazonPaid.java.srcDirs = ['src/paid/java']
+
+        amazonFree.res.srcDirs = ['src/free/res']
+        amazonFree.java.srcDirs = ['src/free/java']
+    }
+
+    lintOptions {
+        ignore 'ExtraTranslation', 'MissingTranslation'
+        abortOnError false
+    }
+
+    packagingOptions {
+        exclude 'META-INF/rxjava.properties'
+    }
+}
+
+dependencies {
+    compile fileTree(include: '*.jar', dir: 'libs')
+
+    // //////////////////////////////////////////////////////////////////////////
+    // Google libs
+    // /////////////////////////////////////////////////////////////////////////
+
+    compile libs.cardView
+    compile libs.design
+    compile libs.palette
+    compile libs.prefCompat
+    compile libs.prefCompatv14
+    compile libs.recyclerView
+    compile libs.supportv4
+    compile libs.firebaseCore
+    compile libs.constraintLayout
+
+    // //////////////////////////////////////////////////////////////////////////
+    // Square libs
+    // /////////////////////////////////////////////////////////////////////////
+
+    compile libs.okio
+    compile libs.okhttp
+    compile libs.retrofit
+    compile libs.retrofitGson
+    compile libs.sqlBrite
+    debugCompile libs.haha
+    debugCompile libs.leakCanaryDebug
+    releaseCompile libs.leakCanaryRel
+
+    // //////////////////////////////////////////////////////////////////////////
+    // External libs
+    // /////////////////////////////////////////////////////////////////////////
+
+    compile libs.navigation
+    compile libs.recyclerAdapter
+    compile libs.multiSheetView
+    compile libs.ccl
+    compile libs.nanoHttp
+    compile libs.dashClockApi
+    compile libs.fastScroll
+    compile libs.glide
+    compile libs.glideOkhttp
+    compile libs.glidePalette
+    compile libs.permiso
+
+    compile libs.rxAndroid
+    compile libs.rxBinding
+    compile libs.rxBindingAppCompat
+    compile libs.rxImagePicker
+    compile libs.rxJava
+    compile libs.rxRelay
+    compile libs.rxBroadcast
+    compile 'com.tspoon.traceur:traceur:1.0.1'
+
+    compile libs.streams
+    compile(libs.crashlytics) {
+        transitive = true
+    }
+    compile libs.materialDialogs
+    compile libs.materialDialogCommons
+    compile libs.butterknife
+    annotationProcessor libs.butterknifeAnnotationProcessor
+    compile libs.dagger
+    annotationProcessor libs.daggerAnnotationProcessor
+    compile libs.expandableRecyclerView
+    compile libs.aesthetic
+    compile libs.betterPickers
+
+    // //////////////////////////////////////////////////////////////////////////
+    // Multidex (Only used in non-proguard pre-21 builds)
+    // /////////////////////////////////////////////////////////////////////////
+    compile libs.multiDex
+
+    // //////////////////////////////////////////////////////////////////////////
+    // Testing
+    // /////////////////////////////////////////////////////////////////////////
+
+    testCompile libs.junit
+    testCompile libs.mockito
+    testCompile libs.powermock
+    testCompile libs.powermockjunit
+    testCompile libs.robolectric
+    testCompile libs.assertj
+    androidTestCompile(libs.espresso) {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    }
+}
+
+def gitCommitCount() {
+    def commitCount = 0
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-list', '--all', '--count'
+            standardOutput stdout
+        }
+        commitCount = stdout.toString().trim().toInteger()
+    }
+    catch (error) {
+        println "Error: ${error}"
+    }
+    return commitCount
+}
+
+/* Todo: Possibly no longer required..
+
+    //Fix an issue where launcher shortcuts don't use the correct package name based on the build flavours.
+    def replaceInShortcuts(variant, fromString, toString) {
+        def flavor = variant.productFlavors.get(0)
+        def buildtype = variant.buildType
+        def shortcutsFile = "$buildDir/intermediates/res/merged/${flavor.name}/${buildtype.name}/xml/shortcuts.xml"
+        def file = new File(shortcutsFile)
+        def updatedContent = file.getText('UTF-8').replaceAll(fromString, toString)
+        file.write(updatedContent, 'UTF-8')
+    }
+
+    afterEvaluate {
+        android.applicationVariants.all { variant ->
+            variant.outputs.each { output ->
+                output.processResources.doFirst {
+                    replaceInShortcuts(variant, '\\{applicationId\\}', variant.applicationId)
+
+                }
+            }
+        }
+    }
+*/
+
+play {
+    track = 'beta'
+    // untrackOld = true
+    serviceAccountEmail = 'app-deployment@api-5801704373554614142-812229.iam.gserviceaccount.com'
+    jsonFile = file('../deployment_keys.json')
+}

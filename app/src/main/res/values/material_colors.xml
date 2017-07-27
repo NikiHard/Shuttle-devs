@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- RED -->
+    <color name="red_300">#f36c60</color>
+
+    <!-- PINK -->
+    <color name="pink_300">#f06292</color>
+    <color name="pink_a200">#ff4081</color>
+
+    <!-- PURPLE -->
+    <color name="purple_300">#ba68c8</color>
+
+    <!-- DEEP PURPLE -->
+    <color name="deep_purple_300">#9575cd</color>
+
+    <!-- INDIGO -->
+    <color name="indigo_300">#7986cb</color>
+
+    <!-- BLUE -->
+    <color name="blue_300">#64B5F6</color>
+    <color name="blue_500">#1E88E5</color>
+
+    <!-- LIGHT BLUE -->
+    <color name="light_blue_300">#4fc3f7</color>
+
+    <!-- CYAN -->
+    <color name="cyan_300">#4dd0e1</color>
+
+    <!-- TEAL -->
+    <color name="teal_300">#4db6ac</color>
+
+    <!-- GREEN -->
+    <color name="green_200">#72d572</color>
+
+    <!-- LIGHT GREEN -->
+    <color name="light_green_300">#aed581</color>
+
+    <!-- LIME -->
+    <color name="lime_300">#dce775</color>
+
+    <!-- YELLOW -->
+
+    <!-- AMBER -->
+    <color name="amber_300">#ffd54f</color>
+
+    <!-- ORANGE -->
+    <color name="orange_300">#ffb74d</color>
+
+    <!-- DEEP ORANGE -->
+    <color name="deep_orange_300">#ff8a65</color>
+    <color name="deep_orange_a200">#ff6e40</color>
+
+    <!-- BROWN -->
+
+    <!-- GREY -->
+    <!-- Grey 1000 (White) -->
+    <color name="grey_250">#e6e6e6</color>
+    <color name="grey_500">#9e9e9e</color>
+    <color name="grey_600">#757575</color>
+    <color name="grey_900">#212121</color>
+    <!-- Grey 1000 (Black) -->
+
+    <!-- BLUE GREY -->
+
+</resources>

@@ -1,0 +1,24 @@
+apply from: 'dependencies.gradle'
+apply plugin: 'com.github.ben-manes.versions'
+
+buildscript {
+    apply from: 'dependencies.gradle'
+    repositories {
+        jcenter()
+        maven { url "https://maven.google.com" }
+    }
+    dependencies {
+        classpath gradlePlugins.android
+        classpath gradlePlugins.googleServices
+        classpath gradlePlugins.playPublisher
+        classpath gradlePlugins.gradleVersions
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { url "https://maven.google.com" }
+    }
+}

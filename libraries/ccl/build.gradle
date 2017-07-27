@@ -1,0 +1,34 @@
+apply plugin: 'com.android.library'
+
+ext {
+    versionName = '2.9.1'
+}
+
+android {
+    compileSdkVersion versions.compileSdk
+    buildToolsVersion versions.buildTools
+    publishNonDefault true
+
+    defaultConfig {
+        minSdkVersion versions.minSdk
+        targetSdkVersion versions.targetSdk
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    compile libs.appcompat
+    compile libs.mediarouter
+    compile libs.chromecast
+}
